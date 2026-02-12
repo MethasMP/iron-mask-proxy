@@ -50,34 +50,41 @@ to change your "Log Destination" URL:
 
 ## 🛠️ Installation Guide
 
-### 1. For Developers (Build from Source)
+### 1. Ready-to-Use (No Source Code Needed) 🌍
 
-If you want to modify the code or run locally:
+If you just want to run the proxy without downloading the source code, use our
+pre-built image (assuming it's on GHCR/DockerHub):
 
 ```bash
-# 1. Clone & Build
-git clone https://github.com/your-username/iron-mask-proxy.git
-cd iron-mask-proxy
-cargo build --release
-
-# 2. Run (Binary at target/release/iron-mask-proxy)
-./target/release/iron-mask-proxy
+docker run -d \
+  --name iron-mask \
+  -p 3000:3000 \
+  -e TARGET_URL="http://your-destination:8080" \
+  ghcr.io/your-username/iron-mask-proxy:latest
 ```
 
-### 2. For Users (Docker - Recommended)
+### 2. For Users (Docker Build) 🐳
 
-The cleanest way to run without installing Rust:
+If you have the source code and want to build your own local image:
 
 ```bash
 # 1. Build Image
 docker build -t iron-mask-proxy .
 
-# 2. Run Container (Map port 3000)
-docker run -d \
-  --name iron-mask \
-  -p 3000:3000 \
-  -e TARGET_URL="http://host.docker.internal:8080" \
-  iron-mask-proxy
+# 2. Run Container
+docker run -d -p 3000:3000 --name iron-mask iron-mask-proxy
+```
+
+### 3. For Developers (Rust/CLI) 🦀
+
+Install it as a global CLI tool on your machine:
+
+```bash
+# Install directly from the repo
+cargo install --git https://github.com/your-username/iron-mask-proxy.git
+
+# Now you can run it from ANY folder
+iron-mask-proxy --port 3000
 ```
 
 ### 3. Verification

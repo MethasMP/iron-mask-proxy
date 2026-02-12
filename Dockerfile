@@ -19,6 +19,7 @@ FROM gcr.io/distroless/cc-debian12
 
 WORKDIR /app
 COPY --from=builder /usr/src/app/target/release/iron-mask-proxy .
+COPY ./config.yaml .
 
 # ตั้งค่า ENV พื้นฐาน
 ENV TARGET_URL=http://localhost:8080
