@@ -5,6 +5,7 @@ FROM rust:1.85-slim AS builder
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /usr/src/app
@@ -18,6 +19,7 @@ RUN cargo build --release
 FROM gcr.io/distroless/cc-debian12
 
 WORKDIR /app
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=builder /usr/src/app/target/release/iron-mask-proxy .
 COPY ./config.yaml .
 
