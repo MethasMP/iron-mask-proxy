@@ -1,0 +1,13 @@
+{
+  "timestamp": "2025-02-13T10:30:00Z",
+  "level": "INFO",
+  "user": "สมชาย เข็มกลัด",
+  "user_id": "USR-12345",
+  "id_card": "1103700012346",
+  "contact": {
+    "phone": "0812345678",
+    "email": "somchai@test.com"
+  },
+  "action": "login",
+  "ip": "192.168.1.100"
+}

@@ -1,0 +1,35 @@
+[package]
+name = "iron-mask-proxy"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "iron_mask_proxy"
+path = "src/lib.rs"
+
+[[bin]]
+name = "iron-mask-proxy"
+path = "src/main.rs"
+
+[dependencies]
+tokio = { version = "1.36", features = ["full"] }
+axum = "0.7.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+regex = "1.10"
+reqwest = { version = "0.11", features = ["json", "stream"] }
+tracing = "0.1"
+tracing-subscriber = "0.3"
+lazy_static = "1.4"
+tower-http = { version = "0.6.8", features = ["trace", "fs"] }
+bytes = "1.0"
+futures-util = "0.3"
+tokio-stream = "0.1"
+
+[dev-dependencies]
+criterion = "0.5"
+
+[[bench]]
+name = "masking_bench"
+harness = false

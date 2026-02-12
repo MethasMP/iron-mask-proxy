@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  # 🛡️ Iron Mask Proxy (The Hero)
+  proxy:
+    build: .
+    container_name: iron-mask-proxy
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    environment:
+      - RUST_LOG=info
+      - TARGET_URL=http://target:80/post
+    depends_on:
+      - target
+    networks:
+      - proxy-net
+
+  # 🎯 Mock Target (The Victim)
+  # ใช้ httpbin เพื่อสะท้อน request body กลับมาให้เราดูว่า Mask แล้วหน้าตาเป็นไง
+  target:
+    image: kennethreitz/httpbin
+    container_name: mock-target
+    ports:
+      - "8080:80"
+    networks:
+      - proxy-net
+
+networks:
+  proxy-net:
+    driver: bridge

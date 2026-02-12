@@ -1,0 +1,8 @@
+{
+  "payment": {
+    "valid_card": "4532015112830366",
+    "invalid_card": "1234567890123456",
+    "thai_debit": "4111111111111111"
+  },
+  "notes": "Valid card passes Luhn check, invalid card should NOT be masked"
+}

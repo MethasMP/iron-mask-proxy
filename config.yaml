@@ -1,0 +1,14 @@
+server:
+  port: 3000
+  host: "0.0.0.0"
+
+masking:
+  # Field ที่ห้าม Mask เด็ดขาด แม้จะตรวจเจอ PII ก็ตาม (White-listing)
+  exclude_fields:
+    ["branch_id", "serial_number", "product_code", "transaction_id"]
+  # ความลึกสูงสุดในการมุด JSON
+  max_depth: 20
+
+target:
+  url: "http://localhost:8080"
+  timeout_ms: 5000
