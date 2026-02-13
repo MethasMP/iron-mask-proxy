@@ -25,6 +25,8 @@
 - [🔒 Security](#-security)
 - [📊 Performance Statistics](#-performance-statistics)
 - [🧪 Examples & Use Cases](#-examples--use-cases)
+- [📤 Expected Output](#-expected-output)
+- [💡 Best Practices & Strategy](#-best-practices--strategy)
 - [🗺️ Roadmap](#️-roadmap)
 - [🤝 Contributing](#-contributing)
 - [🆘 Support](#-support)
@@ -370,29 +372,54 @@ security:
 
 ### Environment Variables
 
-All config options can be overridden via environment variables:
+All config options can be overridden via environment variables. **Priority order:** CLI flags > Environment Variables > Config File
+
+| Config Key | Environment Variable | Example Value | Description |
+|------------|---------------------|---------------|-------------|
+| `server.port` | `IRON_PORT` | `3000` | Port to listen on |
+| `server.host` | `IRON_HOST` | `0.0.0.0` | Bind address |
+| `target.url` | `TARGET_URL` | `http://data-lake.company.com:8080` | Upstream destination |
+| `target.url` | `TARGET_LOG_URL` | `http://logs.company.com:8080` | Legacy support |
+| `masking.exclude_fields` | `EXCLUDE_FIELDS` | `branch_id,serial_number` | Comma-separated fields to skip |
+| `masking.max_depth` | `MAX_DEPTH` | `20` | Max JSON nesting depth |
+| `logging.level` | `RUST_LOG` | `info` | Log level (debug/info/warn/error) |
+| `logging.format` | `LOG_FORMAT` | `json` | Output format (json/text) |
+| `security.rate_limit` | `RATE_LIMIT` | `10000` | Requests per minute |
+| `security.max_body_size` | `MAX_BODY_SIZE` | `104857600` | Max body size in bytes |
+| `security.tls_verify` | `TLS_VERIFY` | `true` | Verify TLS certificates |
+
+### CLI Usage Examples
+
+Run with custom port using environment variable:
 
 ```bash
-# Server settings
-export IRON_PORT=3000
-export IRON_HOST=0.0.0.0
+# Quick start with custom port
+PORT=4000 iron-mask-proxy
 
-# Target upstream
-export TARGET_URL=http://data-lake.company.com:8080
-export TARGET_LOG_URL=http://backup-logs.company.com:8080  # Legacy support
+# Or with target URL
+TARGET_URL=http://localhost:8080 PORT=3000 iron-mask-proxy
 
-# Masking settings
-export EXCLUDE_FIELDS=branch_id,serial_number,user_agent
-export MAX_DEPTH=20
+# Docker with env vars
+docker run -e PORT=4000 -e TARGET_URL=http://my-api:8080 -p 4000:4000 iron-mask-proxy
+```
 
-# Logging
-export RUST_LOG=info
-export LOG_FORMAT=json
+### Configuration Priority
 
-# Security
-export RATE_LIMIT=10000
-export MAX_BODY_SIZE=104857600  # 100MB in bytes
-export TLS_VERIFY=true
+Iron Mask uses the following priority (highest to lowest):
+
+1. **CLI Arguments** - Direct command-line flags
+2. **Environment Variables** - Shell environment overrides
+3. **Config File** - `config.yaml` settings
+4. **Default Values** - Built-in defaults
+
+**Example scenario:**
+```bash
+# Config file says port 3000, but env var overrides to 4000
+export PORT=4000
+iron-mask-proxy  # Will listen on port 4000
+
+# CLI argument has highest priority
+iron-mask-proxy --port 5000  # Will listen on port 5000, ignoring env and config
 ```
 
 ### Multiple Targets Configuration
@@ -561,6 +588,448 @@ curl -X POST http://localhost:3000/mask \
 
 ---
 
+## 📤 Expected Output
+
+See what Iron Mask does to your data. Here's a **Before/After** comparison:
+
+### Example 1: Simple Log Entry
+
+**Input (Raw Data):**
+```json
+{
+  "timestamp": "2024-03-20T10:00:00Z",
+  "user": "สมชาย เข็มกลัด",
+  "id_card": "1103700012346",
+  "email": "somchai@example.com",
+  "phone": "081-234-5678",
+  "message": "Contact me for details"
+}
+```
+
+**Output (Masked Data):**
+```json
+{
+  "timestamp": "2024-03-20T10:00:00Z",
+  "user": "***MASKED***",
+  "id_card": "***MASKED***",
+  "email": "***MASKED***",
+  "phone": "***MASKED***",
+  "message": "Contact me for details"
+}
+```
+
+### Example 2: Mixed Text Content
+
+**Input:**
+```json
+{
+  "log_message": "Customer สมศักดิ์ รักเรียน (ID: 3100602938274) called from 089-876-5432 about order #12345"
+}
+```
+
+**Output:**
+```json
+{
+  "log_message": "Customer ***MASKED*** (ID: ***MASKED***) called from ***MASKED*** about order #12345"
+}
+```
+
+### Example 3: Nested Objects (Preserving Structure)
+
+**Input:**
+```json
+{
+  "event": "user_login",
+  "user": {
+    "name": "ณัฐพล ใจดี",
+    "email": "nattapon@company.co.th",
+    "phone": "0901234567"
+  },
+  "metadata": {
+    "ip_address": "192.168.1.100",
+    "user_agent": "Mozilla/5.0..."
+  }
+}
+```
+
+**Output:**
+```json
+{
+  "event": "user_login",
+  "user": {
+    "name": "***MASKED***",
+    "email": "***MASKED***",
+    "phone": "***MASKED***"
+  },
+  "metadata": {
+    "ip_address": "192.168.1.100",
+    "user_agent": "Mozilla/5.0..."
+  }
+}
+```
+
+### Example 4: Credit Card with Context
+
+**Input:**
+```json
+{
+  "transaction_id": "TXN-2024-001",
+  "customer_name": "John Smith",
+  "card_number": "4532123456789012",
+  "amount": 1500.00,
+  "branch_id": "BKK-001"
+}
+```
+
+**Output:**
+```json
+{
+  "transaction_id": "TXN-2024-001",
+  "customer_name": "***MASKED***",
+  "card_number": "***MASKED***",
+  "amount": 1500.00,
+  "branch_id": "BKK-001"
+}
+```
+
+> **Note:** Notice how `branch_id` is NOT masked because it's in the `exclude_fields` list in `config.yaml`!
+
+### Example 5: What Does NOT Get Masked
+
+Iron Mask is smart - it validates before masking to avoid false positives:
+
+**Input:**
+```json
+{
+  "random_number": "1234567890123",
+  "valid_thai_id": "1103700012346",
+  "invalid_id": "1103700012345",
+  "timestamp": "2024-03-20T10:00:00Z",
+  "order_id": "ORD-12345-XYZ"
+}
+```
+
+**Output:**
+```json
+{
+  "random_number": "1234567890123",
+  "valid_thai_id": "***MASKED***",
+  "invalid_id": "1103700012345",
+  "timestamp": "2024-03-20T10:00:00Z",
+  "order_id": "ORD-12345-XYZ"
+}
+```
+
+> **Why:** The `invalid_id` failed Thai ID checksum validation, so it's kept as-is. Only data that matches PII patterns AND passes validation gets masked.
+
+---
+
+## 💡 Best Practices & Strategy
+
+### 🎯 Where Iron Mask Fits in Your Architecture
+
+```
+Your Data Pipeline with Iron Mask
+├── Applications/Services (Sources)
+│   ├── Web App
+│   ├── Mobile API
+│   └── Background Jobs
+│
+├── Iron Mask Proxy ← INSERT HERE
+│   └── Transparent PII Masking Layer
+│
+├── Data Destinations
+│   ├── Data Lake (Snowflake/BigQuery)
+│   ├── SIEM (Splunk/ELK)
+│   ├── Monitoring (Datadog/Grafana)
+│   └── Log Storage (S3/CloudWatch)
+│
+└── Compliance & Audit
+    └── PDPA Reports & Access Logs
+```
+
+**Key Principle:** Iron Mask acts as a transparent filter - your applications don't need to know it exists.
+
+---
+
+### 🚀 Recommended Rollout Strategy
+
+Don't flip the switch overnight. Use this phased approach:
+
+#### Phase 1: Shadow Mode (Week 1-2)
+- Deploy Iron Mask alongside existing pipeline
+- Log what WOULD be masked without blocking
+- Review logs to tune `exclude_fields`
+- **Goal:** Validate configuration without risk
+
+```bash
+# Shadow mode - mask but also forward original
+TARGET_URL=http://original-destination:8080
+SHADOW_MODE=true  # Forward both masked and unmasked
+```
+
+#### Phase 2: Canary Deployment (Week 3-4)
+- Route 10% of traffic through Iron Mask
+- Monitor: latency, error rates, data quality
+- Gradually increase: 10% → 50% → 100%
+- **Goal:** Ensure production stability
+
+#### Phase 3: Full Production (Week 5+)
+- 100% traffic through Iron Mask
+- Original destination receives only masked data
+- Set up alerts for masking failures
+- **Goal:** Complete compliance coverage
+
+---
+
+### 🧠 Tactical Configuration Strategies
+
+Deploying data masking isn't just about technology; it's about finding the right balance between **Privacy** and **Debuggability**.
+
+#### Strategy 1: The "ID Linkability" Approach
+**Problem:** Developers hate full masking because it makes debugging impossible. "Who faced this error?" becomes a mystery.
+
+**Solution:** **Don't mask IDs** (like `user_id`, `order_id`, `transaction_id`). Mask only **Direct Identifiers** (Name, Phone, Email, ID Card).
+
+| Field | Action | Why? |
+|-------|--------|------|
+| `user_id: "88234"` | ✅ **Keep** | Safe to log. Needed for tracing bugs. |
+| `name: "Somchai"` | ❌ **Mask** | PII. Not needed for system logic. |
+| `email: "a@b.com"` | ❌ **Mask** | PII. High risk if leaked. |
+| `order_id: "ORD-12345"` | ✅ **Keep** | Business reference. Safe to log. |
+| `credit_card: "4532..."` | ❌ **Mask** | Financial PII. Always mask. |
+
+**Configuration:**
+```yaml
+masking:
+  exclude_fields: ["user_id", "account_id", "trace_id", "order_ref", "request_id"]
+```
+
+#### Strategy 2: Environment-Based Policy 🌍
+Security needs differ by environment. Use environment variables to adjust strictness without code changes.
+
+| Environment | Policy | Config |
+|-------------|--------|--------|
+| **Development** | Relaxed | `EXCLUDE_FIELDS="trace_id,user_name"` - Devs see more context |
+| **Staging** | Moderate | `EXCLUDE_FIELDS="trace_id"` - Test masking logic |
+| **Production** | Strict | `EXCLUDE_FIELDS="trace_id"` - Maximum protection |
+
+```bash
+# In Production - Strict mode
+export EXCLUDE_FIELDS="trace_id"
+export RUST_LOG=warn  # Less verbose
+
+# In Development - Relaxed mode  
+export EXCLUDE_FIELDS="trace_id,debug_info,dev_notes"
+export RUST_LOG=debug  # More verbose for debugging
+```
+
+#### Strategy 3: The "Fail-Safe" Default 🛡️
+Iron Mask is **"Secure by Default"**. If it detects a credit card pattern in a field you didn't expect (e.g., inside a comment), it will mask it.
+
+**Recommendation:** Trust the regex engine. It's better to accidentally mask a random 16-digit number in a comment than to leak a real credit card number.
+
+**Pro Tip:** If you find legitimate data being masked:
+1. Check if it's actually PII (maybe it should be masked!)
+2. If not PII, add the field to `exclude_fields`
+3. Document why it's excluded for your security audit
+
+---
+
+### 🔄 Zero-Downtime Migration Path
+
+**Scenario:** You have logs going directly to Data Lake, want to add masking.
+
+**Migration Steps:**
+
+1. **Preparation** (Day 1)
+   ```bash
+   # Deploy Iron Mask in parallel
+   docker-compose up -d iron-mask-proxy
+   
+   # Test with sample data
+   curl -X POST http://localhost:3000/mask \
+     -d @test-payload.json
+   ```
+
+2. **Configuration** (Day 2-3)
+   - Identify `exclude_fields` (internal IDs, non-PII data)
+   - Test with real payloads from production
+   - Document which fields get masked
+
+3. **Switch Over** (Day 4)
+   ```bash
+   # Before: App → Data Lake
+   # After:  App → Iron Mask → Data Lake
+   
+   # Update your app's log destination URL:
+   LOG_ENDPOINT=http://iron-mask-proxy:3000/mask
+   ```
+
+4. **Validation** (Day 5)
+   - Check Data Lake for masked data
+   - Verify no PII leaked
+   - Monitor performance metrics
+
+**Rollback Plan:**
+```bash
+# If issues occur, instantly revert:
+LOG_ENDPOINT=http://data-lake-original:8080  # Bypass Iron Mask
+```
+
+---
+
+### 👥 Organizational Adoption Guide
+
+**For DevOps Teams:**
+- ✅ No code changes required in applications
+- ✅ Deploy as Docker container or sidecar
+- ✅ Monitor via standard HTTP metrics
+- ⚠️ Remember to configure `exclude_fields` for internal IDs
+
+**For Security Teams:**
+- ✅ Automatic PDPI detection and masking
+- ✅ Audit trail without PII exposure
+- ✅ Compliance reports ready for auditors
+- ⚠️ Review masking rules quarterly
+
+**For Engineering Managers:**
+- ✅ 99% faster than building in-house (5 min vs 3-6 months)
+- ✅ 50x cheaper than enterprise solutions
+- ✅ Zero maintenance overhead
+- ⚠️ Plan rollout during low-traffic period
+
+**Communication Template:**
+```
+Subject: New PII Masking Layer - Action Required: NONE
+
+Team,
+
+We're deploying Iron Mask Proxy to ensure PDPA compliance.
+✅ Your applications don't need changes
+✅ All logs will be automatically sanitized
+✅ No performance impact (<1ms latency)
+
+Questions? Contact DevOps team.
+```
+
+---
+
+### 📊 Success Metrics (How to Measure ROI)
+
+Track these KPIs to prove value:
+
+| Metric | Target | How to Measure |
+|--------|--------|----------------|
+| **PII Detection Rate** | >95% | Review sample of masked logs |
+| **False Positive Rate** | <2% | Check if valid data was wrongly masked |
+| **Latency Added** | <5ms | Compare before/after response times |
+| **Uptime** | >99.9% | Standard availability monitoring |
+| **Dev Time Saved** | Track hours | vs building custom masking |
+| **Compliance Score** | 100% | Audit checklist completion |
+
+**Monthly Review Checklist:**
+- [ ] Review masking logs for new PII patterns
+- [ ] Check excluded fields are still valid
+- [ ] Verify no data loss in downstream systems
+- [ ] Update team on compliance status
+
+---
+
+### 🛡️ Risk Mitigation Strategies
+
+**What if Iron Mask goes down?**
+
+**Option A: Circuit Breaker Pattern (Recommended)**
+```yaml
+# Use with nginx/traefik
+upstream backend {
+    server iron-mask:3000 max_fails=3 fail_timeout=30s;
+    server data-lake:8080 backup;  # Direct bypass
+}
+```
+If Iron Mask fails, traffic automatically bypasses to destination.
+
+**Option B: Health Check & Alert**
+```bash
+# Monitor Iron Mask health
+curl -f http://localhost:3000/health || alert_devops
+```
+
+**Option C: Redundant Deployment**
+```yaml
+# Deploy 2+ instances with load balancer
+iron-mask-1:3000
+iron-mask-2:3000
+```
+
+**Graceful Degradation:**
+- Iron Mask fails open (passes data through) rather than blocking
+- Always prioritize availability over strict masking during outages
+- Log all failures for post-incident review
+
+---
+
+### 🔧 Common Integration Patterns
+
+#### Pattern 1: Kubernetes Sidecar
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+spec:
+  template:
+    spec:
+      containers:
+        - name: my-app
+          env:
+            - name: LOG_ENDPOINT
+              value: "http://localhost:3000/mask"
+        - name: iron-mask
+          image: iron-mask-proxy:latest
+          env:
+            - name: TARGET_URL
+              value: "http://data-lake:8080"
+```
+
+#### Pattern 2: API Gateway Integration
+```nginx
+# nginx.conf
+location /logs {
+    proxy_pass http://iron-mask-proxy:3000/mask;
+    proxy_set_header Host $host;
+}
+```
+
+#### Pattern 3: Log Shipper (Fluentd/Logstash)
+```yaml
+# fluentd.conf
+<match application.**>
+  @type http
+  endpoint http://iron-mask-proxy:3000/mask
+  json_array true
+</match>
+```
+
+#### Pattern 4: Docker Compose Stack
+```yaml
+version: '3.8'
+services:
+  my-app:
+    environment:
+      - LOG_URL=http://iron-mask:3000/mask
+  
+  iron-mask:
+    image: iron-mask-proxy:latest
+    environment:
+      - TARGET_URL=http://data-lake:8080
+      - EXCLUDE_FIELDS=trace_id,request_id
+  
+  data-lake:
+    image: my-data-lake:latest
+```
+
+---
+
 ## 🤝 Contributing
 
 Contributions are welcome! Whether it's a new masking rule, performance
@@ -688,12 +1157,6 @@ Have an idea? Open a GitHub Discussion and let us know!
 | Feature Requests | GitHub Discussions | 3-5 days |
 | Security Issues | Email | 24 hours |
 | Enterprise Support | Email | 4 hours |
-
-### Who's Using Iron Mask?
-
-Be the first to be listed here! If your company uses Iron Mask, let us know:
-
-> Add your company - Contact us via GitHub Discussions
 
 ---
 
