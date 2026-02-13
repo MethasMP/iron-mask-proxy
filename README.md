@@ -621,7 +621,7 @@ graph LR
 We take security seriously. If you discover a vulnerability:
 
 1. **DO NOT** open a public issue
-2. Email security concerns to: security@ironmask.dev (or project maintainer)
+2. Email security concerns to: methaspak@gmail.com
 3. Include detailed reproduction steps
 4. We will respond within 48 hours
 
@@ -667,7 +667,7 @@ Our vision for Iron Mask extends beyond today's capabilities:
 
 ### 💡 Community Wishlist
 
-Have an idea? [Open a discussion](https://github.com/MethasMP/iron-mask-proxy/discussions) and let us know!
+Have an idea? Open a GitHub Discussion and let us know!
 
 ---
 
@@ -676,8 +676,8 @@ Have an idea? [Open a discussion](https://github.com/MethasMP/iron-mask-proxy/di
 ### Getting Help
 
 - 📖 **Documentation**: You're reading it! Check sections above
-- 🐛 **Bug Reports**: [Open an issue](https://github.com/MethasMP/iron-mask-proxy/issues)
-- 💬 **Discussions**: [GitHub Discussions](https://github.com/MethasMP/iron-mask-proxy/discussions)
+- 🐛 **Bug Reports**: Open a GitHub Issue
+- 💬 **Discussions**: Use GitHub Discussions
 - 📧 **Email**: For private inquiries, contact the maintainer
 
 ### Support Channels
@@ -693,7 +693,7 @@ Have an idea? [Open a discussion](https://github.com/MethasMP/iron-mask-proxy/di
 
 Be the first to be listed here! If your company uses Iron Mask, let us know:
 
-> [Add your company](https://github.com/MethasMP/iron-mask-proxy/discussions/new?category=show-and-tell)
+> Add your company - Contact us via GitHub Discussions
 
 ---
 
